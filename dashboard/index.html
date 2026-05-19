@@ -643,25 +643,11 @@ async function resolveChannel(info) {
   return { id: item.id, title: item.snippet.title, thumb: item.snippet.thumbnails?.default?.url || '' };
 }
 
-// Usa playlist de uploads (UU...) en vez de search.list — cuesta ~2 unidades en vez de 100
 async function findLiveVideos(channelId) {
-  const uploadsId = 'UU' + channelId.slice(2);
   const data = await apiGet(
-    `playlistItems?part=contentDetails&playlistId=${uploadsId}&maxResults=25`, 1
+    `search?part=snippet&channelId=${channelId}&eventType=live&type=video&maxResults=10`, 100
   );
-  const videoIds = (data.items || []).map(i => i.contentDetails.videoId);
-  if (!videoIds.length) return [];
-
-  // Verificar cuáles están en vivo usando snippet + liveStreamingDetails
-  const vData = await apiGet(
-    `videos?part=snippet,liveStreamingDetails&id=${videoIds.join(',')}`, 1
-  );
-  return (vData.items || [])
-    .filter(i =>
-      i.snippet?.liveBroadcastContent === 'live' ||
-      (i.liveStreamingDetails?.actualStartTime && !i.liveStreamingDetails?.actualEndTime)
-    )
-    .map(i => i.id);
+  return (data.items || []).map(i => i.id.videoId);
 }
 
 // ─── Polling de streams ───────────────────────────────────────────────────────
