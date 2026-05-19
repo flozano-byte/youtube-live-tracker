@@ -652,12 +652,15 @@ async function findLiveVideos(channelId) {
   const videoIds = (data.items || []).map(i => i.contentDetails.videoId);
   if (!videoIds.length) return [];
 
-  // Verificar cuáles están en vivo
+  // Verificar cuáles están en vivo usando snippet + liveStreamingDetails
   const vData = await apiGet(
-    `videos?part=liveStreamingDetails&id=${videoIds.join(',')}`, 1
+    `videos?part=snippet,liveStreamingDetails&id=${videoIds.join(',')}`, 1
   );
   return (vData.items || [])
-    .filter(i => i.liveStreamingDetails?.concurrentViewers != null)
+    .filter(i =>
+      i.snippet?.liveBroadcastContent === 'live' ||
+      (i.liveStreamingDetails?.actualStartTime && !i.liveStreamingDetails?.actualEndTime)
+    )
     .map(i => i.id);
 }
 
