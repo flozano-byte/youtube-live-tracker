@@ -332,17 +332,9 @@
   </div>
 
   <div class="add-panel">
-    <div class="add-tabs">
-      <button class="tab-btn active" data-tab="url">Por URL de video</button>
-      <button class="tab-btn" data-tab="channel">Vigilar canal</button>
-    </div>
-    <div class="tab-pane active" id="tab-url">
+    <div class="tab-pane active" id="tab-url" style="display:flex;gap:10px;">
       <input class="add-input" id="input-url" type="text" placeholder="https://www.youtube.com/watch?v=... o https://youtu.be/..." />
       <button class="btn-add" id="btn-add-url">+ Agregar stream</button>
-    </div>
-    <div class="tab-pane" id="tab-channel">
-      <input class="add-input" id="input-channel" type="text" placeholder="https://www.youtube.com/@RPPNoticias  o  UC..." />
-      <button class="btn-add" id="btn-add-channel">+ Vigilar canal</button>
     </div>
   </div>
 
@@ -1136,15 +1128,6 @@ document.getElementById('btn-save-settings').addEventListener('click', () => {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
-  });
-});
-
 document.getElementById('btn-add-url').addEventListener('click', async () => {
   if (!S.apiKey) { openSettings(); return; }
   const input = document.getElementById('input-url').value.trim();
@@ -1157,16 +1140,6 @@ document.getElementById('btn-add-url').addEventListener('click', async () => {
 });
 document.getElementById('input-url').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('btn-add-url').click(); });
 
-document.getElementById('btn-add-channel').addEventListener('click', async () => {
-  if (!S.apiKey) { openSettings(); return; }
-  const input = document.getElementById('input-channel').value.trim();
-  if (!input) return;
-  document.getElementById('btn-add-channel').disabled = true;
-  await addChannel(input);
-  document.getElementById('input-channel').value = '';
-  document.getElementById('btn-add-channel').disabled = false;
-});
-document.getElementById('input-channel').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('btn-add-channel').click(); });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
