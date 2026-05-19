@@ -422,9 +422,9 @@
     <div class="form-group">
       <label class="form-label">Revisar canales vigilados cada</label>
       <select class="form-select" id="cfg-channel-interval">
-        <option value="5">5 minutos</option>
+        <option value="5" selected>5 minutos (recomendado)</option>
         <option value="10">10 minutos</option>
-        <option value="15">15 minutos (recomendado)</option>
+        <option value="15">15 minutos</option>
         <option value="30">30 minutos</option>
         <option value="60">1 hora</option>
       </select>
@@ -479,7 +479,7 @@ function toArr(v) {
 const S = {
   apiKey:          DEFAULT_API_KEY,
   streamInterval:  parseInt(localStorage.getItem('yt_si')  || '30',  10),
-  channelInterval: parseInt(localStorage.getItem('yt_ci')  || '15',  10),
+  channelInterval: parseInt(localStorage.getItem('yt_ci')  || '5',  10),
   streams:         {},
   channels:        {},
   streamTimers:    {},
