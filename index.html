@@ -471,11 +471,6 @@
   <div class="modal">
     <h2>⚙ Configuración</h2>
     <div class="form-group">
-      <label class="form-label">YouTube API Key</label>
-      <input class="form-input" id="cfg-api-key" type="text" placeholder="AIzaSy..." />
-      <p class="form-hint">Google Cloud Console → APIs y Servicios → Credenciales → Crear clave de API.<br>Activa la <strong>YouTube Data API v3</strong> en el mismo proyecto.</p>
-    </div>
-    <div class="form-group">
       <label class="form-label">Actualizar viewers cada</label>
       <select class="form-select" id="cfg-stream-interval">
         <option value="15">15 segundos (mayor consumo de cuota)</option>
@@ -504,10 +499,20 @@
 <div id="toast"></div>
 
 <script>
+// ─── Defaults (pre-configurados) ──────────────────────────────────────────────
+
+const DEFAULT_API_KEY = 'AIzaSyAIH4DYrM7Q0Z0J_h8wCVw-VMrwAL_mSdo';
+const DEFAULT_CHANNELS = [
+  '@RPPNoticias',
+  '@LaRepublica',
+  '@LaRoroNetworkOficial',
+  '@todogoodpe',
+];
+
 // ─── Estado ────────────────────────────────────────────────────────────────────
 
 const S = {
-  apiKey:          localStorage.getItem('yt_api_key') || '',
+  apiKey:          localStorage.getItem('yt_api_key') || DEFAULT_API_KEY,
   streamInterval:  parseInt(localStorage.getItem('yt_si') || '30', 10),
   channelInterval: parseInt(localStorage.getItem('yt_ci') || '10', 10),
   streams:  JSON.parse(localStorage.getItem('yt_streams')  || '{}'),
@@ -950,9 +955,6 @@ function renderChannelCard(channelId) {
   else                             { statusText='Esperando primera revisión…'; statusClass='checking'; }
 
   const initials = (ch.title||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  const avatar = ch.thumb
-    ? `<img src="${esc(ch.thumb)}" alt="${esc(ch.title)}"/>`
-    : initials;
 
   const html = `
     <div class="ch-avatar">${ch.thumb?`<img src="${esc(ch.thumb)}" alt=""/>`:initials}</div>
@@ -1140,7 +1142,6 @@ function buildDetailChart(pts) {
 // ─── Config modal ──────────────────────────────────────────────────────────────
 
 function openSettings() {
-  document.getElementById('cfg-api-key').value = S.apiKey;
   document.getElementById('cfg-stream-interval').value = String(S.streamInterval);
   document.getElementById('cfg-channel-interval').value = String(S.channelInterval);
   document.getElementById('modal-settings').classList.add('open');
@@ -1152,10 +1153,8 @@ document.getElementById('btn-cancel-settings').addEventListener('click', closeSe
 document.getElementById('modal-settings').addEventListener('click', e => { if(e.target===e.currentTarget) closeSettings(); });
 
 document.getElementById('btn-save-settings').addEventListener('click', () => {
-  S.apiKey          = document.getElementById('cfg-api-key').value.trim();
   S.streamInterval  = parseInt(document.getElementById('cfg-stream-interval').value, 10);
   S.channelInterval = parseInt(document.getElementById('cfg-channel-interval').value, 10);
-  localStorage.setItem('yt_api_key', S.apiKey);
   localStorage.setItem('yt_si', S.streamInterval);
   localStorage.setItem('yt_ci', S.channelInterval);
   closeSettings();
@@ -1221,8 +1220,13 @@ Object.entries(S.streams).forEach(([id, s]) => {
   if (s.status !== 'ended' && s.status !== 'error') startStreamPolling(id);
 });
 
-// Reanudar vigilancia de canales
+// Reanudar vigilancia de canales guardados
 Object.keys(S.channels).forEach(id => startChannelWatch(id));
+
+// Primera visita: cargar canales por defecto
+if (!Object.keys(S.channels).length) {
+  DEFAULT_CHANNELS.forEach(handle => addChannel(handle));
+}
 </script>
 </body>
 </html>
