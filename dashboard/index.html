@@ -647,7 +647,7 @@ async function resolveChannel(info) {
 async function findLiveVideos(channelId) {
   const uploadsId = 'UU' + channelId.slice(2);
   const data = await apiGet(
-    `playlistItems?part=contentDetails&playlistId=${uploadsId}&maxResults=10`, 1
+    `playlistItems?part=contentDetails&playlistId=${uploadsId}&maxResults=25`, 1
   );
   const videoIds = (data.items || []).map(i => i.contentDetails.videoId);
   if (!videoIds.length) return [];
@@ -728,9 +728,6 @@ function stopStreamPolling(videoId) {
 async function checkChannel(channelId) {
   const ch = S.channels[channelId];
   if (!ch) return;
-
-  // Omitir si otro cliente ya revisó recientemente
-  if (ch.lastChecked && (Date.now() - ch.lastChecked) < (S.channelInterval * 60000 * 0.8)) return;
 
   ch.status = 'checking';
   renderChannelCard(channelId);
