@@ -421,8 +421,8 @@
     <div class="form-group">
       <label class="form-label">Actualizar viewers cada</label>
       <select class="form-select" id="cfg-stream-interval">
-        <option value="30">30 segundos</option>
-        <option value="60" selected>1 minuto (recomendado)</option>
+        <option value="30" selected>30 segundos (recomendado)</option>
+        <option value="60">1 minuto</option>
         <option value="120">2 minutos</option>
         <option value="300">5 minutos</option>
       </select>
@@ -486,7 +486,7 @@ function toArr(v) {
 
 const S = {
   apiKey:          DEFAULT_API_KEY,
-  streamInterval:  parseInt(localStorage.getItem('yt_si')  || '60',  10),
+  streamInterval:  parseInt(localStorage.getItem('yt_si')  || '30',  10),
   channelInterval: parseInt(localStorage.getItem('yt_ci')  || '15',  10),
   streams:         {},
   channels:        {},
