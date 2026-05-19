@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Live Tracker — Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0a0a0a;
+      --s1:      #141414;
+      --s2:      #1e1e1e;
+      --s3:      #282828;
+      --border:  #2a2a2a;
+      --text:    #f0f0f0;
+      --muted:   #888;
+      --red:     #ff4444;
+      --green:   #22c55e;
+      --yellow:  #eab308;
+      --blue:    #3b82f6;
+      --radius:  12px;
+      --font:    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,10,.94); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-text { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+    .logo-sub  { font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .quota-pill {
+      font-size: 11px; color: var(--muted);
+      background: var(--s2); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 20px;
+    }
+    .quota-pill span { color: var(--text); font-weight: 600; }
+    .btn-icon {
+      background: var(--s2); border: 1px solid var(--border);
+      color: var(--muted); width: 36px; height: 36px; border-radius: 8px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: color .15s, border-color .15s;
+    }
+    .btn-icon:hover { color: var(--text); border-color: #444; }
+
+    /* ── Main ── */
+    main { max-width: 1400px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 28px; }
+
+    /* ── Warning ── */
+    .api-warning {
+      background: rgba(234,179,8,.08); border: 1px solid rgba(234,179,8,.3);
+      border-radius: var(--radius); padding: 14px 18px;
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; color: var(--yellow);
+    }
+    .api-warning button {
+      margin-left: auto; background: rgba(234,179,8,.15);
+      border: 1px solid rgba(234,179,8,.3); color: var(--yellow);
+      font-size: 12px; font-weight: 600; padding: 5px 12px;
+      border-radius: 6px; cursor: pointer; white-space: nowrap;
+    }
+
+    /* ── Add panel ── */
+    .add-panel {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+    }
+    .add-tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+    .tab-btn {
+      background: none; border: none; color: var(--muted);
+      font-size: 13px; font-weight: 600; padding: 6px 14px;
+      border-radius: 6px; cursor: pointer; transition: all .15s;
+    }
+    .tab-btn.active { background: var(--s2); color: var(--text); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: flex; gap: 10px; }
+    .add-input {
+      flex: 1; background: var(--s2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px;
+      padding: 9px 14px; outline: none; transition: border-color .15s;
+    }
+    .add-input:focus { border-color: #444; }
+    .add-input::placeholder { color: #555; }
+    .btn-add {
+      background: var(--red); border: none; color: #fff;
+      font-size: 13px; font-weight: 600; padding: 9px 20px;
+      border-radius: 8px; cursor: pointer; white-space: nowrap; transition: opacity .15s;
+    }
+    .btn-add:hover { opacity: .85; }
+    .btn-add:disabled { opacity: .4; cursor: default; }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-badge {
+      background: var(--s2); border: 1px solid var(--border);
+      color: var(--muted); font-size: 11px; font-weight: 600;
+      padding: 1px 7px; border-radius: 10px;
+    }
+    .section-action {
+      background: none; border: none; color: var(--muted);
+      font-size: 12px; cursor: pointer; padding: 4px 8px;
+      border-radius: 6px; transition: color .15s;
+    }
+    .section-action:hover { color: var(--text); }
+
+    /* ── Stats bar ── */
+    .stats-bar { display: flex; gap: 20px; align-items: center; }
+    .stat-item { font-size: 13px; color: var(--muted); }
+    .stat-item strong { color: var(--text); font-weight: 700; }
+    .stat-sep { color: var(--border); }
+
+    /* ── Channels grid ── */
+    .channels-grid {
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+    .channel-card {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+      min-width: 220px; position: relative;
+    }
+    .channel-card.has-live { border-color: rgba(255,68,68,.4); }
+    .ch-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--s2); flex-shrink: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      color: #555; font-weight: 700; font-size: 16px;
+    }
+    .ch-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .ch-info { flex: 1; min-width: 0; }
+    .ch-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ch-status { font-size: 11px; margin-top: 3px; }
+    .ch-status.live   { color: var(--red); }
+    .ch-status.idle   { color: var(--muted); }
+    .ch-status.checking { color: var(--yellow); }
+    .ch-remove {
+      background: none; border: none; color: #444;
+      cursor: pointer; padding: 4px; border-radius: 4px;
+      display: flex; align-items: center; transition: color .15s;
+    }
+    .ch-remove:hover { color: var(--red); }
+
+    /* ── Stream grid ── */
+    .streams-section { display: flex; flex-direction: column; }
+    .streams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      grid-column: 1/-1; text-align: center; padding: 48px 20px;
+      color: var(--muted);
+    }
+    .empty-state svg { opacity: .2; margin-bottom: 14px; }
+    .empty-state h3 { font-size: 15px; color: var(--text); opacity: .4; margin-bottom: 6px; }
+    .empty-state p  { font-size: 13px; line-height: 1.6; }
+
+    /* ── Stream card ── */
+    .stream-card {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      display: flex; flex-direction: column; position: relative;
+      transition: border-color .2s;
+    }
+    .stream-card.live    { border-color: rgba(255,68,68,.35); }
+    .stream-card.ended   { opacity: .65; }
+    .stream-card:hover   { border-color: #383838; }
+    .stream-card.live:hover { border-color: rgba(255,68,68,.55); }
+
+    .card-thumb {
+      position: relative; aspect-ratio: 16/9;
+      background: #111; overflow: hidden;
+    }
+    .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .card-thumb .no-thumb {
+      width: 100%; height: 100%; display: flex;
+      align-items: center; justify-content: center;
+      background: var(--s2); color: #2a2a2a;
+    }
+
+    .live-badge {
+      position: absolute; top: 10px; left: 10px;
+      background: var(--red); color: #fff;
+      font-size: 11px; font-weight: 700; padding: 3px 8px;
+      border-radius: 4px; letter-spacing: .8px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .live-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: blink 1.4s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+
+    .status-badge {
+      position: absolute; top: 10px; left: 10px;
+      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+    }
+    .status-badge.ended   { background: rgba(0,0,0,.7); color: var(--muted); border: 1px solid #333; }
+    .status-badge.loading { background: rgba(234,179,8,.2); color: var(--yellow); }
+    .status-badge.error   { background: rgba(255,68,68,.2); color: var(--red); }
+
+    .card-duration {
+      position: absolute; bottom: 8px; right: 8px;
+      background: rgba(0,0,0,.75); color: #ddd;
+      font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    }
+
+    .card-remove {
+      position: absolute; top: 10px; right: 10px;
+      background: rgba(0,0,0,.7); border: none; color: var(--muted);
+      width: 28px; height: 28px; border-radius: 6px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .15s;
+    }
+    .stream-card:hover .card-remove { opacity: 1; }
+    .card-remove:hover { color: var(--red); }
+
+    .card-body { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .card-meta  { font-size: 11px; color: var(--muted); }
+    .card-title { font-size: 13px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .card-viewers { display: flex; align-items: baseline; gap: 6px; }
+    .viewers-num {
+      font-size: 32px; font-weight: 800; line-height: 1; letter-spacing: -1px;
+      transition: color .4s;
+    }
+    .viewers-num.up   { color: var(--green); }
+    .viewers-num.down { color: var(--red); }
+    .viewers-label { font-size: 13px; color: var(--muted); }
+
+    .card-substats { display: flex; gap: 16px; font-size: 12px; color: var(--muted); }
+    .card-chart { background: var(--s2); border-radius: 8px; padding: 6px; height: 88px; overflow: hidden; }
+    .card-footer { font-size: 11px; color: #3a3a3a; display: flex; justify-content: space-between; }
+
+    .ended-info {
+      background: var(--s2); border-radius: 8px; padding: 10px 12px;
+      font-size: 12px; color: var(--muted); line-height: 1.5;
+    }
+    .ended-info strong { color: var(--text); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px; width: 480px; max-width: 95vw;
+    }
+    .modal h2 { font-size: 16px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .form-input, .form-select {
+      width: 100%; background: var(--s2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px; padding: 9px 12px; outline: none;
+    }
+    .form-input:focus { border-color: #555; }
+    .form-hint { font-size: 11px; color: #555; margin-top: 5px; line-height: 1.5; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+    .btn-save   { background: var(--red); color: #fff; border: none; font-size: 13px; font-weight: 600; padding: 9px 22px; border-radius: 8px; cursor: pointer; }
+    .btn-cancel { background: var(--s2); color: var(--text); border: 1px solid var(--border); font-size: 13px; padding: 9px 18px; border-radius: 8px; cursor: pointer; }
+
+    /* ── Detail modal ── */
+    .detail-modal {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--radius); width: 560px; max-width: 95vw;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .detail-header {
+      position: sticky; top: 0; background: var(--s1);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 22px; display: flex; align-items: flex-start; gap: 14px;
+    }
+    .detail-thumb {
+      width: 100px; height: 56px; border-radius: 6px;
+      overflow: hidden; flex-shrink: 0; background: var(--s2);
+    }
+    .detail-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .detail-title-block { flex: 1; min-width: 0; }
+    .detail-channel { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .detail-title { font-size: 14px; font-weight: 700; line-height: 1.4; }
+    .detail-close {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; padding: 4px; border-radius: 6px;
+      display: flex; align-items: center; flex-shrink: 0;
+      transition: color .15s;
+    }
+    .detail-close:hover { color: var(--text); }
+
+    .detail-body { padding: 22px; display: flex; flex-direction: column; gap: 20px; }
+
+    .detail-kpis {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    }
+    .kpi-card {
+      background: var(--s2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .kpi-value { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+    .kpi-value.green { color: var(--green); }
+    .kpi-value.red   { color: var(--red); }
+    .kpi-value.yellow { color: var(--yellow); }
+    .kpi-sub  { font-size: 11px; color: #555; }
+
+    .detail-section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--muted); margin-bottom: 10px;
+    }
+    .detail-timeline {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .timeline-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px; padding: 8px 12px;
+      background: var(--s2); border-radius: 8px;
+    }
+    .timeline-label { color: var(--muted); }
+    .timeline-value { font-weight: 600; }
+
+    .detail-chart { background: var(--s2); border-radius: 10px; padding: 10px; height: 140px; }
+
+    .stream-card.ended { cursor: pointer; }
+    .stream-card.ended:hover { border-color: rgba(255,68,68,.3); opacity: .8; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--s2); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; padding: 10px 18px;
+      border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,.4);
+      z-index: 300; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    #toast.show { opacity: 1; }
+    #toast.ok  { border-color: rgba(34,197,94,.4); color: var(--green); }
+    #toast.err { border-color: rgba(255,68,68,.4); color: var(--red); }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff0000"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+    <span class="logo-text">YouTube Live Tracker <span class="logo-sub">Dashboard</span></span>
+  </div>
+  <div class="header-right">
+    <div class="quota-pill" id="quota-pill" title="Unidades de cuota estimadas usadas hoy">Cuota: <span id="quota-used">0</span> / 10,000</div>
+    <button class="btn-icon" id="btn-settings" title="Configuración">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.484.484 0 0 0 .12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- Warning -->
+  <div class="api-warning" id="api-warning" style="display:none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    Necesitas configurar tu YouTube API Key para comenzar.
+    <button onclick="openSettings()">Configurar ahora</button>
+  </div>
+
+  <!-- Add panel -->
+  <div class="add-panel">
+    <div class="add-tabs">
+      <button class="tab-btn active" data-tab="url">Por URL de video</button>
+      <button class="tab-btn" data-tab="channel">Vigilar canal</button>
+    </div>
+    <div class="tab-pane active" id="tab-url">
+      <input class="add-input" id="input-url" type="text" placeholder="https://www.youtube.com/watch?v=... o https://youtu.be/..." />
+      <button class="btn-add" id="btn-add-url">+ Agregar stream</button>
+    </div>
+    <div class="tab-pane" id="tab-channel">
+      <input class="add-input" id="input-channel" type="text" placeholder="https://www.youtube.com/@RPPNoticias  o  UC..." />
+      <button class="btn-add" id="btn-add-channel">+ Vigilar canal</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="stats-bar" style="display:none">
+    <div class="stat-item">En vivo: <strong id="stat-live">0</strong></div>
+    <span class="stat-sep">·</span>
+    <div class="stat-item">Total viewers: <strong id="stat-total">—</strong></div>
+    <span class="stat-sep">·</span>
+    <div class="stat-item">Streams terminados: <strong id="stat-ended">0</strong></div>
+  </div>
+
+  <!-- Canales vigilados -->
+  <div id="channels-section" style="display:none">
+    <div class="section-header">
+      <div class="section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        Canales vigilados
+        <span class="section-badge" id="ch-count">0</span>
+      </div>
+    </div>
+    <div class="channels-grid" id="channels-grid"></div>
+  </div>
+
+  <!-- Streams -->
+  <div class="streams-section">
+    <div class="section-header">
+      <div class="section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        Streams
+        <span class="section-badge" id="streams-count">0</span>
+      </div>
+      <button class="section-action" id="btn-clear-ended" style="display:none" onclick="clearEndedStreams()">Limpiar terminados</button>
+    </div>
+    <div class="streams-grid" id="streams-grid">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+        <h3>No hay streams monitoreados</h3>
+        <p>Agrega un video en vivo por URL<br>o vigila un canal para detectar transmisiones automáticamente.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Detail modal -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="detail-modal">
+    <div class="detail-header">
+      <div class="detail-thumb"><img id="detail-thumb" src="" alt="" /></div>
+      <div class="detail-title-block">
+        <div class="detail-channel" id="detail-channel"></div>
+        <div class="detail-title" id="detail-title"></div>
+      </div>
+      <button class="detail-close" onclick="closeDetail()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <div class="detail-body">
+      <div>
+        <div class="detail-section-title">Métricas de audiencia</div>
+        <div class="detail-kpis" id="detail-kpis"></div>
+      </div>
+      <div>
+        <div class="detail-section-title">Cronología</div>
+        <div class="detail-timeline" id="detail-timeline"></div>
+      </div>
+      <div>
+        <div class="detail-section-title">Evolución de viewers</div>
+        <div class="detail-chart" id="detail-chart"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Config modal -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <h2>⚙ Configuración</h2>
+    <div class="form-group">
+      <label class="form-label">YouTube API Key</label>
+      <input class="form-input" id="cfg-api-key" type="text" placeholder="AIzaSy..." />
+      <p class="form-hint">Google Cloud Console → APIs y Servicios → Credenciales → Crear clave de API.<br>Activa la <strong>YouTube Data API v3</strong> en el mismo proyecto.</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Actualizar viewers cada</label>
+      <select class="form-select" id="cfg-stream-interval">
+        <option value="15">15 segundos (mayor consumo de cuota)</option>
+        <option value="30" selected>30 segundos (recomendado)</option>
+        <option value="60">1 minuto</option>
+        <option value="120">2 minutos</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Revisar canales vigilados cada</label>
+      <select class="form-select" id="cfg-channel-interval">
+        <option value="5">5 minutos</option>
+        <option value="10" selected>10 minutos (recomendado)</option>
+        <option value="15">15 minutos</option>
+        <option value="30">30 minutos</option>
+      </select>
+      <p class="form-hint">Cada revisión de canal consume 100 unidades de cuota. La cuota gratuita es 10,000 unidades/día.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btn-cancel-settings">Cancelar</button>
+      <button class="btn-save" id="btn-save-settings">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── Estado ────────────────────────────────────────────────────────────────────
+
+const S = {
+  apiKey:          localStorage.getItem('yt_api_key') || '',
+  streamInterval:  parseInt(localStorage.getItem('yt_si') || '30', 10),
+  channelInterval: parseInt(localStorage.getItem('yt_ci') || '10', 10),
+  streams:  JSON.parse(localStorage.getItem('yt_streams')  || '{}'),
+  channels: JSON.parse(localStorage.getItem('yt_channels') || '{}'),
+  streamTimers:  {},
+  channelTimers: {},
+  quotaUsed: parseInt(sessionStorage.getItem('yt_quota') || '0', 10),
+};
+
+// ─── Utilidades ────────────────────────────────────────────────────────────────
+
+const YT = 'https://www.googleapis.com/youtube/v3';
+
+function fmt(n) {
+  if (!Number.isFinite(n)) return '—';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
+  return n.toLocaleString('es-PE');
+}
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString('es-PE', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+function fmtDuration(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastT = null;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  if (toastT) clearTimeout(toastT);
+  toastT = setTimeout(() => el.className = '', 3000);
+}
+
+function addQuota(units) {
+  S.quotaUsed += units;
+  sessionStorage.setItem('yt_quota', S.quotaUsed);
+  document.getElementById('quota-used').textContent = S.quotaUsed.toLocaleString('es-PE');
+}
+
+function saveStreams()  { localStorage.setItem('yt_streams',  JSON.stringify(Object.fromEntries(Object.entries(S.streams).map(([k,v]) => [k, {...v, dataPoints: v.dataPoints.slice(-500)}])))); }
+function saveChannels() { localStorage.setItem('yt_channels', JSON.stringify(S.channels)); }
+
+// ─── Parseo de URLs ────────────────────────────────────────────────────────────
+
+function extractVideoId(input) {
+  for (const p of [/[?&]v=([a-zA-Z0-9_-]{11})/, /youtu\.be\/([a-zA-Z0-9_-]{11})/, /\/live\/([a-zA-Z0-9_-]{11})/, /\/embed\/([a-zA-Z0-9_-]{11})/]) {
+    const m = input.match(p); if (m) return m[1];
+  }
+  if (/^[a-zA-Z0-9_-]{11}$/.test(input.trim())) return input.trim();
+  return null;
+}
+
+function extractChannelInfo(input) {
+  input = input.trim();
+  const handle = input.match(/\/@([a-zA-Z0-9_.%-]+)/);
+  if (handle) return { type:'handle', value: handle[1] };
+  const uc = input.match(/(UC[a-zA-Z0-9_-]{22})/);
+  if (uc) return { type:'id', value: uc[1] };
+  if (input.startsWith('@')) return { type:'handle', value: input.slice(1) };
+  return null;
+}
+
+// ─── YouTube API ──────────────────────────────────────────────────────────────
+
+async function apiGet(path, quota=1) {
+  const sep = path.includes('?') ? '&' : '?';
+  const res = await fetch(`${YT}/${path}${sep}key=${S.apiKey}`);
+  addQuota(quota);
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function fetchVideoInfo(videoId) {
+  const data = await apiGet(`videos?part=snippet,liveStreamingDetails&id=${videoId}`, 1);
+  const item = data.items?.[0];
+  if (!item) return null;
+  const lsd     = item.liveStreamingDetails;
+  const viewers = lsd?.concurrentViewers != null ? parseInt(lsd.concurrentViewers, 10) : null;
+  const isLive  = !!lsd && viewers !== null;
+  const isEnded = !!lsd?.actualEndTime;
+  return {
+    videoId,
+    title:    item.snippet.title,
+    channel:  item.snippet.channelTitle,
+    channelId:item.snippet.channelId,
+    thumb:    item.snippet.thumbnails?.medium?.url || '',
+    viewers, isLive, isEnded,
+    startTime: lsd?.actualStartTime ? new Date(lsd.actualStartTime).getTime() : null,
+    endTime:   lsd?.actualEndTime   ? new Date(lsd.actualEndTime).getTime()   : null,
+  };
+}
+
+async function resolveChannel(info) {
+  if (info.type === 'id') {
+    const data = await apiGet(`channels?part=snippet&id=${info.value}`, 1);
+    const item = data.items?.[0];
+    if (!item) return null;
+    return { id: item.id, title: item.snippet.title, thumb: item.snippet.thumbnails?.default?.url || '' };
+  } else {
+    const data = await apiGet(`channels?part=snippet&forHandle=${encodeURIComponent(info.value)}`, 1);
+    const item = data.items?.[0];
+    if (!item) return null;
+    return { id: item.id, title: item.snippet.title, thumb: item.snippet.thumbnails?.default?.url || '' };
+  }
+}
+
+async function findLiveVideos(channelId) {
+  const data = await apiGet(`search?part=snippet&channelId=${channelId}&eventType=live&type=video&maxResults=10`, 100);
+  return (data.items || []).map(i => i.id.videoId);
+}
+
+// ─── Polling de streams ───────────────────────────────────────────────────────
+
+async function pollStream(videoId) {
+  try {
+    const info = await fetchVideoInfo(videoId);
+    const s = S.streams[videoId];
+    if (!s) return;
+
+    if (!info) {
+      s.status = 'error'; s.errorMsg = 'Video no encontrado';
+      renderCard(videoId); return;
+    }
+
+    const prevCount = s.dataPoints.at(-1)?.count ?? null;
+    s.title   = info.title;
+    s.channel = info.channel;
+    s.thumb   = info.thumb || s.thumb;
+    s.prevCount = prevCount;
+
+    if (info.isLive && info.viewers !== null) {
+      s.status = 'live';
+      s.dataPoints.push({ count: info.viewers, ts: Date.now() });
+      if (info.startTime && !s.startTime) s.startTime = info.startTime;
+    } else if (info.isEnded) {
+      // La transmisión terminó — detener polling
+      if (s.status !== 'ended') {
+        s.status  = 'ended';
+        s.endTime = info.endTime || Date.now();
+        stopStreamPolling(videoId);
+        toast(`"${s.title.slice(0,40)}…" ha terminado`, '');
+      }
+    } else {
+      s.status = 'not_live';
+    }
+
+    s.lastUpdated = Date.now();
+    saveStreams();
+    renderCard(videoId);
+    updateStats();
+
+  } catch(e) {
+    if (S.streams[videoId]) {
+      S.streams[videoId].status = 'error';
+      S.streams[videoId].errorMsg = e.message;
+      renderCard(videoId);
+    }
+  }
+}
+
+function startStreamPolling(videoId) {
+  stopStreamPolling(videoId);
+  pollStream(videoId);
+  S.streamTimers[videoId] = setInterval(() => pollStream(videoId), S.streamInterval * 1000);
+}
+
+function stopStreamPolling(videoId) {
+  if (S.streamTimers[videoId]) { clearInterval(S.streamTimers[videoId]); delete S.streamTimers[videoId]; }
+}
+
+// ─── Vigilar canales ──────────────────────────────────────────────────────────
+
+async function checkChannel(channelId) {
+  const ch = S.channels[channelId];
+  if (!ch) return;
+
+  ch.status = 'checking';
+  renderChannelCard(channelId);
+
+  try {
+    const videoIds = await findLiveVideos(channelId);
+    ch.lastChecked = Date.now();
+
+    let newCount = 0;
+    for (const videoId of videoIds) {
+      if (!S.streams[videoId]) {
+        S.streams[videoId] = { videoId, title:'Cargando…', channel: ch.title, thumb:'', dataPoints:[], status:'loading', lastUpdated: null, fromChannel: channelId };
+        startStreamPolling(videoId);
+        newCount++;
+      }
+    }
+
+    ch.status = videoIds.length > 0 ? 'live' : 'idle';
+    ch.liveCount = videoIds.length;
+    saveChannels();
+    saveStreams();
+    renderChannelCard(channelId);
+    renderAllCards();
+    updateStats();
+
+    if (newCount > 0) toast(`${newCount} nuevo(s) stream(s) en vivo en ${ch.title}`, 'ok');
+
+  } catch(e) {
+    ch.status = 'error';
+    renderChannelCard(channelId);
+  }
+}
+
+function startChannelWatch(channelId) {
+  stopChannelWatch(channelId);
+  checkChannel(channelId);
+  S.channelTimers[channelId] = setInterval(() => checkChannel(channelId), S.channelInterval * 60 * 1000);
+}
+
+function stopChannelWatch(channelId) {
+  if (S.channelTimers[channelId]) { clearInterval(S.channelTimers[channelId]); delete S.channelTimers[channelId]; }
+}
+
+// ─── Agregar ──────────────────────────────────────────────────────────────────
+
+async function addStreamByUrl(input) {
+  const videoId = extractVideoId(input);
+  if (!videoId)              { toast('URL no reconocida.', 'err'); return; }
+  if (S.streams[videoId])   { toast('Este stream ya está en el dashboard.', 'err'); return; }
+
+  S.streams[videoId] = { videoId, title:'Cargando…', channel:'', thumb:'', dataPoints:[], status:'loading', lastUpdated: null };
+  saveStreams(); renderAllCards(); startStreamPolling(videoId);
+  toast('Stream agregado', 'ok');
+}
+
+async function addChannel(input) {
+  const info = extractChannelInfo(input);
+  if (!info) { toast('Canal no reconocido. Usa @handle o URL del canal.', 'err'); return; }
+
+  toast('Resolviendo canal…');
+  try {
+    const ch = await resolveChannel(info);
+    if (!ch) { toast('Canal no encontrado.', 'err'); return; }
+    if (S.channels[ch.id]) { toast('Este canal ya está siendo vigilado.', 'err'); return; }
+
+    S.channels[ch.id] = { id: ch.id, title: ch.title, thumb: ch.thumb, status:'idle', lastChecked: null, liveCount:0 };
+    saveChannels();
+    renderChannelsSection();
+    startChannelWatch(ch.id);
+    toast(`Vigilando ${ch.title}`, 'ok');
+  } catch(e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+function removeStream(videoId) {
+  stopStreamPolling(videoId);
+  delete S.streams[videoId];
+  saveStreams();
+  document.querySelector(`.stream-card[data-id="${videoId}"]`)?.remove();
+  if (!Object.keys(S.streams).length) showEmptyState();
+  updateStats();
+}
+
+function removeChannel(channelId) {
+  stopChannelWatch(channelId);
+  delete S.channels[channelId];
+  saveChannels();
+  renderChannelsSection();
+}
+
+function clearEndedStreams() {
+  for (const [id, s] of Object.entries(S.streams)) {
+    if (s.status === 'ended' || s.status === 'error' || s.status === 'not_live') {
+      stopStreamPolling(id);
+      delete S.streams[id];
+      document.querySelector(`.stream-card[data-id="${id}"]`)?.remove();
+    }
+  }
+  saveStreams();
+  if (!Object.keys(S.streams).length) showEmptyState();
+  updateStats();
+}
+
+// ─── SVG Chart ────────────────────────────────────────────────────────────────
+
+function buildChart(pts) {
+  if (!pts || pts.length === 0)
+    return '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#2a2a2a;font-size:11px">Sin datos</div>';
+
+  const plot = pts.length === 1 ? [pts[0], {...pts[0], ts: pts[0].ts+1}] : pts;
+  const W=300, H=76, P={t:4,r:4,b:18,l:36};
+  const iW=W-P.l-P.r, iH=H-P.t-P.b;
+  const counts = plot.map(p=>p.count);
+  const minV=Math.min(...counts), maxV=Math.max(...counts), rng=maxV-minV||1;
+  const x=i=>P.l+(i/(plot.length-1))*iW;
+  const y=v=>P.t+(1-(v-minV)/rng)*iH;
+  const id = 'g'+Math.random().toString(36).slice(2);
+  const line = plot.map((p,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.count).toFixed(1)}`).join(' ');
+  const area = `${line} L${x(plot.length-1).toFixed(1)},${(P.t+iH).toFixed(1)} L${P.l},${(P.t+iH).toFixed(1)} Z`;
+  const yTicks = [minV,maxV].map(v=>`<text x="${P.l-3}" y="${(y(v)+4).toFixed(1)}" text-anchor="end" fill="#3a3a3a" font-size="9">${fmt(v)}</text>`).join('');
+  const xi = plot.length<=1?[0]:[0,Math.floor((plot.length-1)/2),plot.length-1];
+  const xTicks = xi.map(i=>`<text x="${x(i).toFixed(1)}" y="${H-2}" text-anchor="middle" fill="#3a3a3a" font-size="9">${fmtTime(plot[i].ts)}</text>`).join('');
+  const dots = plot.length<=20 ? plot.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.count).toFixed(1)}" r="2.5" fill="#ff4444"/>`).join('') : '';
+  return `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff4444" stop-opacity=".35"/><stop offset="100%" stop-color="#ff4444" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#${id})"/>
+    <path d="${line}" stroke="#ff4444" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${yTicks}${xTicks}</svg>`;
+}
+
+// ─── Render cards ──────────────────────────────────────────────────────────────
+
+function renderCard(videoId) {
+  const s   = S.streams[videoId];
+  const pts = s.dataPoints;
+  const last = pts.at(-1);
+  const peak = pts.length ? Math.max(...pts.map(p=>p.count)) : null;
+  const avg  = pts.length ? Math.round(pts.reduce((a,p)=>a+p.count,0)/pts.length) : null;
+  const trend = (s.prevCount != null && last) ? (last.count > s.prevCount ? 'up' : last.count < s.prevCount ? 'down' : '') : '';
+
+  let badge='', extra='';
+  if (s.status==='live') {
+    badge = `<div class="live-badge"><span class="live-dot"></span>EN VIVO</div>`;
+    if (s.startTime) extra = `<div class="card-duration">${fmtDuration(Date.now()-s.startTime)}</div>`;
+  } else if (s.status==='ended') {
+    badge = `<div class="status-badge ended">FINALIZADO</div>`;
+  } else if (s.status==='loading') {
+    badge = `<div class="status-badge loading">Cargando…</div>`;
+  } else if (s.status==='error') {
+    badge = `<div class="status-badge error">Error</div>`;
+  } else {
+    badge = `<div class="status-badge ended">No en vivo</div>`;
+  }
+
+  const thumb = s.thumb
+    ? `<img src="${esc(s.thumb)}" alt="" loading="lazy"/>`
+    : `<div class="no-thumb"><svg width="32" height="32" viewBox="0 0 24 24" fill="#2a2a2a"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></div>`;
+
+  let endedBlock = '';
+  if (s.status==='ended' && s.endTime) {
+    const dur = s.startTime ? fmtDuration(s.endTime - s.startTime) : '—';
+    endedBlock = `<div class="ended-info">
+      Finalizado: <strong>${fmtTime(s.endTime)}</strong>&nbsp;·&nbsp;Duración: <strong>${dur}</strong>&nbsp;·&nbsp;Pico: <strong>${peak!==null?fmt(peak):'—'}</strong>
+    </div>`;
+  }
+
+  const viewersBlock = s.status==='ended'
+    ? ''
+    : `<div class="card-viewers">
+        <span class="viewers-num ${trend}">${last ? fmt(last.count) : '—'}</span>
+        <span class="viewers-label">viewers</span>
+      </div>
+      <div class="card-substats">
+        <span>Pico: <strong>${peak!==null?fmt(peak):'—'}</strong></span>
+        <span>Promedio: <strong>${avg!==null?fmt(avg):'—'}</strong></span>
+      </div>`;
+
+  const html = `
+    <div class="card-thumb">
+      ${thumb}${badge}${extra}
+      <button class="card-remove" onclick="removeStream('${videoId}')" title="Eliminar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="card-meta">${esc(s.channel)}</div>
+      <div class="card-title">${esc(s.title)}</div>
+      ${viewersBlock}
+      ${endedBlock}
+      <div class="card-chart">${buildChart(pts.slice(-60))}</div>
+      <div class="card-footer"><span>${videoId}</span><span>${s.lastUpdated ? fmtTime(s.lastUpdated) : '—'}</span></div>
+    </div>`;
+
+  let card = document.querySelector(`.stream-card[data-id="${videoId}"]`);
+  if (!card) {
+    card = document.createElement('div');
+    card.dataset.id = videoId;
+    document.getElementById('streams-grid').appendChild(card);
+    removeEmptyState();
+  }
+  card.className = `stream-card ${s.status==='live'?'live':''} ${s.status==='ended'?'ended':''}`.trim();
+  card.innerHTML = html;
+
+  // Cards finalizadas abren el modal de detalle al hacer clic
+  if (s.status === 'ended') {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.card-remove')) return;
+      openDetail(videoId);
+    });
+  }
+}
+
+function renderAllCards() {
+  const grid = document.getElementById('streams-grid');
+
+  // Eliminar cards huérfanas
+  grid.querySelectorAll('.stream-card').forEach(el => {
+    if (!S.streams[el.dataset.id]) el.remove();
+  });
+
+  const ids = Object.keys(S.streams);
+  if (!ids.length) { showEmptyState(); return; }
+
+  // Separar en vivo vs terminados/otros
+  const live   = ids.filter(id => S.streams[id].status === 'live');
+  const ended  = ids.filter(id => S.streams[id].status === 'ended');
+  const others = ids.filter(id => !live.includes(id) && !ended.includes(id));
+
+  // Ordenar cada grupo por hora de inicio ascendente (cronológico)
+  const byStart = (a, b) => {
+    const ta = S.streams[a].startTime || S.streams[a].lastUpdated || 0;
+    const tb = S.streams[b].startTime || S.streams[b].lastUpdated || 0;
+    return ta - tb;
+  };
+
+  live.sort(byStart);
+  ended.sort(byStart);
+  others.sort(byStart);
+
+  // Renderizar cada card y reordenar en el DOM
+  [...live, ...others, ...ended].forEach(id => {
+    renderCard(id);
+    const card = grid.querySelector(`.stream-card[data-id="${id}"]`);
+    if (card) grid.appendChild(card); // mueve al final en el orden correcto
+  });
+}
+
+function renderChannelCard(channelId) {
+  const ch = S.channels[channelId];
+  let statusText='', statusClass='idle';
+  if (ch.status==='live')     { statusText=`${ch.liveCount} stream(s) en vivo`; statusClass='live'; }
+  else if (ch.status==='checking') { statusText='Revisando…'; statusClass='checking'; }
+  else if (ch.status==='error')    { statusText='Error al revisar'; statusClass='idle'; }
+  else if (ch.lastChecked)         { statusText=`Sin señal · Revisado ${fmtTime(ch.lastChecked)}`; statusClass='idle'; }
+  else                             { statusText='Esperando primera revisión…'; statusClass='checking'; }
+
+  const initials = (ch.title||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const avatar = ch.thumb
+    ? `<img src="${esc(ch.thumb)}" alt="${esc(ch.title)}"/>`
+    : initials;
+
+  const html = `
+    <div class="ch-avatar">${ch.thumb?`<img src="${esc(ch.thumb)}" alt=""/>`:initials}</div>
+    <div class="ch-info">
+      <div class="ch-name" title="${esc(ch.title)}">${esc(ch.title)}</div>
+      <div class="ch-status ${statusClass}">${statusText}</div>
+    </div>
+    <button class="ch-remove" onclick="removeChannel('${channelId}')" title="Dejar de vigilar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>`;
+
+  let card = document.querySelector(`.channel-card[data-id="${channelId}"]`);
+  if (!card) {
+    card = document.createElement('div');
+    card.className = 'channel-card';
+    card.dataset.id = channelId;
+    document.getElementById('channels-grid').appendChild(card);
+  }
+  card.className = `channel-card ${ch.status==='live'?'has-live':''}`;
+  card.innerHTML = html;
+}
+
+function renderChannelsSection() {
+  const ids = Object.keys(S.channels);
+  document.getElementById('channels-section').style.display = ids.length ? '' : 'none';
+  document.getElementById('ch-count').textContent = ids.length;
+
+  document.querySelectorAll('.channel-card').forEach(el => {
+    if (!S.channels[el.dataset.id]) el.remove();
+  });
+  ids.forEach(id => renderChannelCard(id));
+}
+
+function showEmptyState() {
+  const grid = document.getElementById('streams-grid');
+  if (!grid.querySelector('.empty-state')) {
+    grid.innerHTML = `<div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+      <h3>No hay streams monitoreados</h3>
+      <p>Agrega un video en vivo por URL<br>o vigila un canal para detectar transmisiones automáticamente.</p>
+    </div>`;
+  }
+}
+
+function removeEmptyState() { document.querySelector('.empty-state')?.remove(); }
+
+function updateStats() {
+  const ids    = Object.keys(S.streams);
+  const live   = ids.filter(id => S.streams[id].status==='live');
+  const ended  = ids.filter(id => S.streams[id].status==='ended');
+  const total  = live.reduce((s,id) => s + (S.streams[id].dataPoints.at(-1)?.count||0), 0);
+
+  document.getElementById('stats-bar').style.display = ids.length ? 'flex' : 'none';
+  document.getElementById('stat-live').textContent   = live.length;
+  document.getElementById('stat-total').textContent  = live.length ? fmt(total) : '—';
+  document.getElementById('stat-ended').textContent  = ended.length;
+  document.getElementById('streams-count').textContent = ids.length;
+  document.getElementById('btn-clear-ended').style.display = ended.length ? '' : 'none';
+}
+
+// ─── Detail modal ─────────────────────────────────────────────────────────────
+
+function openDetail(videoId) {
+  const s   = S.streams[videoId];
+  const pts = s.dataPoints;
+  if (!pts.length) return;
+
+  const counts   = pts.map(p => p.count);
+  const peak     = Math.max(...counts);
+  const peakTs   = pts.find(p => p.count === peak)?.ts;
+  const min      = Math.min(...counts);
+  const avg      = Math.round(counts.reduce((a,b) => a+b, 0) / counts.length);
+  const duration = s.startTime && s.endTime ? s.endTime - s.startTime : null;
+  const monTime  = pts.at(-1).ts - pts[0].ts;
+
+  // Tendencia final: comparar último 20% vs primer 20% de la transmisión
+  const chunk = Math.max(1, Math.floor(pts.length * 0.2));
+  const startAvg = Math.round(counts.slice(0, chunk).reduce((a,b)=>a+b,0) / chunk);
+  const endAvg   = Math.round(counts.slice(-chunk).reduce((a,b)=>a+b,0) / chunk);
+  const trend    = endAvg > startAvg ? '↑ Subiendo' : endAvg < startAvg ? '↓ Bajando' : '→ Estable';
+  const trendCls = endAvg > startAvg ? 'green' : endAvg < startAvg ? 'red' : 'yellow';
+
+  // Header
+  document.getElementById('detail-thumb').src     = s.thumb || '';
+  document.getElementById('detail-channel').textContent = s.channel || '';
+  document.getElementById('detail-title').textContent   = s.title   || videoId;
+
+  // KPIs
+  document.getElementById('detail-kpis').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Pico de viewers</div>
+      <div class="kpi-value red">${fmt(peak)}</div>
+      <div class="kpi-sub">${peakTs ? fmtTime(peakTs) : ''}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Promedio</div>
+      <div class="kpi-value">${fmt(avg)}</div>
+      <div class="kpi-sub">durante toda la transmisión</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Mínimo</div>
+      <div class="kpi-value">${fmt(min)}</div>
+      <div class="kpi-sub">viewers concurrentes</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Tendencia final</div>
+      <div class="kpi-value ${trendCls}" style="font-size:18px">${trend}</div>
+      <div class="kpi-sub">${fmt(startAvg)} → ${fmt(endAvg)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Duración</div>
+      <div class="kpi-value" style="font-size:18px">${duration ? fmtDuration(duration) : '—'}</div>
+      <div class="kpi-sub">tiempo en vivo</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Monitoreo</div>
+      <div class="kpi-value" style="font-size:18px">${fmtDuration(monTime)}</div>
+      <div class="kpi-sub">${counts.length} mediciones registradas</div>
+    </div>`;
+
+  // Cronología
+  document.getElementById('detail-timeline').innerHTML = `
+    <div class="timeline-row">
+      <span class="timeline-label">Inicio de transmisión</span>
+      <span class="timeline-value">${s.startTime ? new Date(s.startTime).toLocaleString('es-PE') : '—'}</span>
+    </div>
+    <div class="timeline-row">
+      <span class="timeline-label">Inicio de monitoreo</span>
+      <span class="timeline-value">${new Date(pts[0].ts).toLocaleString('es-PE')}</span>
+    </div>
+    <div class="timeline-row">
+      <span class="timeline-label">Momento de mayor audiencia</span>
+      <span class="timeline-value">${peakTs ? new Date(peakTs).toLocaleString('es-PE') : '—'}</span>
+    </div>
+    <div class="timeline-row">
+      <span class="timeline-label">Fin de transmisión</span>
+      <span class="timeline-value">${s.endTime ? new Date(s.endTime).toLocaleString('es-PE') : '—'}</span>
+    </div>`;
+
+  // Gráfica detallada (todos los puntos)
+  document.getElementById('detail-chart').innerHTML = buildDetailChart(pts);
+
+  document.getElementById('modal-detail').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('modal-detail').classList.remove('open');
+}
+
+document.getElementById('modal-detail').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeDetail();
+});
+
+function buildDetailChart(pts) {
+  if (!pts.length) return '';
+  const plot = pts.length === 1 ? [pts[0], {...pts[0], ts: pts[0].ts+1}] : pts;
+  const W=520, H=120, P={t:6,r:6,b:22,l:44};
+  const iW=W-P.l-P.r, iH=H-P.t-P.b;
+  const counts=plot.map(p=>p.count);
+  const minV=Math.min(...counts), maxV=Math.max(...counts), rng=maxV-minV||1;
+  const x=i=>P.l+(i/(plot.length-1))*iW;
+  const y=v=>P.t+(1-(v-minV)/rng)*iH;
+  const id='dg'+Math.random().toString(36).slice(2);
+  const line=plot.map((p,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.count).toFixed(1)}`).join(' ');
+  const area=`${line} L${x(plot.length-1).toFixed(1)},${(P.t+iH).toFixed(1)} L${P.l},${(P.t+iH).toFixed(1)} Z`;
+  const peakCount=Math.max(...counts);
+  const peakIdx=counts.indexOf(peakCount);
+  const yTicks=[minV,Math.round((minV+maxV)/2),maxV].map(v=>
+    `<text x="${P.l-4}" y="${(y(v)+4).toFixed(1)}" text-anchor="end" fill="#555" font-size="10">${fmt(v)}</text>`).join('');
+  const n=plot.length;
+  const xi=n<=1?[0]:[0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1];
+  const xTicks=xi.map(i=>`<text x="${x(i).toFixed(1)}" y="${H-4}" text-anchor="middle" fill="#555" font-size="10">${fmtTime(plot[i].ts)}</text>`).join('');
+  const peakMarker=`
+    <line x1="${x(peakIdx).toFixed(1)}" y1="${P.t}" x2="${x(peakIdx).toFixed(1)}" y2="${(P.t+iH).toFixed(1)}" stroke="#ff444444" stroke-width="1" stroke-dasharray="3,3"/>
+    <circle cx="${x(peakIdx).toFixed(1)}" cy="${y(peakCount).toFixed(1)}" r="4" fill="#ff4444"/>
+    <text x="${x(peakIdx).toFixed(1)}" y="${(y(peakCount)-8).toFixed(1)}" text-anchor="middle" fill="#ff8888" font-size="10" font-weight="700">${fmt(peakCount)}</text>`;
+  const dots=plot.length<=30?plot.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.count).toFixed(1)}" r="2" fill="#ff444488"/>`).join(''):'';
+  return `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff4444" stop-opacity=".3"/><stop offset="100%" stop-color="#ff4444" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#${id})"/>
+    <path d="${line}" stroke="#ff4444" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${peakMarker}${yTicks}${xTicks}</svg>`;
+}
+
+// ─── Config modal ──────────────────────────────────────────────────────────────
+
+function openSettings() {
+  document.getElementById('cfg-api-key').value = S.apiKey;
+  document.getElementById('cfg-stream-interval').value = String(S.streamInterval);
+  document.getElementById('cfg-channel-interval').value = String(S.channelInterval);
+  document.getElementById('modal-settings').classList.add('open');
+}
+function closeSettings() { document.getElementById('modal-settings').classList.remove('open'); }
+
+document.getElementById('btn-settings').addEventListener('click', openSettings);
+document.getElementById('btn-cancel-settings').addEventListener('click', closeSettings);
+document.getElementById('modal-settings').addEventListener('click', e => { if(e.target===e.currentTarget) closeSettings(); });
+
+document.getElementById('btn-save-settings').addEventListener('click', () => {
+  S.apiKey          = document.getElementById('cfg-api-key').value.trim();
+  S.streamInterval  = parseInt(document.getElementById('cfg-stream-interval').value, 10);
+  S.channelInterval = parseInt(document.getElementById('cfg-channel-interval').value, 10);
+  localStorage.setItem('yt_api_key', S.apiKey);
+  localStorage.setItem('yt_si', S.streamInterval);
+  localStorage.setItem('yt_ci', S.channelInterval);
+  closeSettings();
+  checkApiKey();
+  toast('Configuración guardada', 'ok');
+  // Reiniciar todos los timers con los nuevos intervalos
+  Object.keys(S.streams).filter(id=>S.streams[id].status!=='ended').forEach(startStreamPolling);
+  Object.keys(S.channels).forEach(startChannelWatch);
+});
+
+function checkApiKey() {
+  document.getElementById('api-warning').style.display = S.apiKey ? 'none' : 'flex';
+}
+
+// ─── Tabs ──────────────────────────────────────────────────────────────────────
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ─── Botones agregar ──────────────────────────────────────────────────────────
+
+document.getElementById('btn-add-url').addEventListener('click', async () => {
+  if (!S.apiKey) { openSettings(); return; }
+  const input = document.getElementById('input-url').value.trim();
+  if (!input) return;
+  document.getElementById('btn-add-url').disabled = true;
+  await addStreamByUrl(input);
+  document.getElementById('input-url').value = '';
+  document.getElementById('btn-add-url').disabled = false;
+  updateStats();
+});
+
+document.getElementById('input-url').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('btn-add-url').click(); });
+
+document.getElementById('btn-add-channel').addEventListener('click', async () => {
+  if (!S.apiKey) { openSettings(); return; }
+  const input = document.getElementById('input-channel').value.trim();
+  if (!input) return;
+  document.getElementById('btn-add-channel').disabled = true;
+  await addChannel(input);
+  document.getElementById('input-channel').value = '';
+  document.getElementById('btn-add-channel').disabled = false;
+});
+
+document.getElementById('input-channel').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('btn-add-channel').click(); });
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+
+checkApiKey();
+renderAllCards();
+renderChannelsSection();
+updateStats();
+document.getElementById('quota-used').textContent = S.quotaUsed.toLocaleString('es-PE');
+
+// Reanudar polling de streams no terminados
+Object.entries(S.streams).forEach(([id, s]) => {
+  if (s.status !== 'ended' && s.status !== 'error') startStreamPolling(id);
+});
+
+// Reanudar vigilancia de canales
+Object.keys(S.channels).forEach(id => startChannelWatch(id));
+</script>
+</body>
+</html>
